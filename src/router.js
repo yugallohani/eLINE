@@ -33,7 +33,23 @@ export const router = {
             <div class="hero-icon">
               <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
                 <circle cx="40" cy="40" r="40" fill="url(#gradient)"/>
-                <path d="M35 25L45 35M45 35L35 45M45 35L55 25M45 35L55 45" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                <!-- Scissor Icon -->
+                <g transform="translate(20, 20)">
+                  <!-- Left blade (circle handle) -->
+                  <circle cx="12" cy="10" r="4" stroke="white" stroke-width="2.5" fill="none"/>
+                  <!-- Right blade (circle handle) -->
+                  <circle cx="12" cy="30" r="4" stroke="white" stroke-width="2.5" fill="none"/>
+                  <!-- Left blade line -->
+                  <path d="M14 12 L28 20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  <!-- Right blade line -->
+                  <path d="M14 28 L28 20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  <!-- Pivot point -->
+                  <circle cx="28" cy="20" r="2" fill="white"/>
+                  <!-- Left blade tip -->
+                  <path d="M28 20 L35 15" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  <!-- Right blade tip -->
+                  <path d="M28 20 L35 25" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                </g>
                 <defs>
                   <linearGradient id="gradient" x1="0" y1="0" x2="80" y2="80">
                     <stop offset="0%" stop-color="#6366f1"/>
