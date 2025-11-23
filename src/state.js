@@ -7,8 +7,8 @@ export const state = {
   businessId: 'demo',
   
   connectWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:3000`;
+    const API_URL = window.API_URL || 'http://localhost:3000';
+    const wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
     
     this.ws = new WebSocket(wsUrl);
     
