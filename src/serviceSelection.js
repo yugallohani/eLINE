@@ -4,6 +4,41 @@ export const serviceSelection = {
   services: [],
   selectedService: null,
   
+  // Map service names to emojis
+  getServiceEmoji(serviceName) {
+    const name = serviceName.toLowerCase();
+    
+    // Hair services
+    if (name.includes('haircut') || name.includes('hair cut')) return '✂️';
+    if (name.includes('hair color') || name.includes('coloring') || name.includes('dye')) return '🎨';
+    if (name.includes('hair spa') || name.includes('hair treatment')) return '💆';
+    if (name.includes('hair wash') || name.includes('shampoo')) return '🚿';
+    if (name.includes('blow dry') || name.includes('styling')) return '💨';
+    
+    // Beard services
+    if (name.includes('beard') || name.includes('shave')) return '🧔';
+    
+    // Facial services
+    if (name.includes('facial') || name.includes('face')) return '😌';
+    if (name.includes('cleanup')) return '✨';
+    
+    // Massage services
+    if (name.includes('massage') || name.includes('head massage')) return '💆‍♂️';
+    
+    // Grooming services
+    if (name.includes('manicure') || name.includes('nail')) return '💅';
+    if (name.includes('pedicure') || name.includes('foot')) return '🦶';
+    if (name.includes('wax') || name.includes('threading')) return '🪒';
+    
+    // Special services
+    if (name.includes('bridal') || name.includes('wedding')) return '👰';
+    if (name.includes('makeup')) return '💄';
+    if (name.includes('mehendi') || name.includes('henna')) return '🖐️';
+    
+    // Default
+    return '✂️';
+  },
+  
   async render(app, barberCode) {
     app.innerHTML = `
       <div class="bg-animated"></div>
@@ -114,10 +149,11 @@ export const serviceSelection = {
   
   renderServiceCard(service) {
     const isSelected = this.selectedService?.id === service.id;
+    const emoji = this.getServiceEmoji(service.name);
     
     return `
       <div class="service-card ${isSelected ? 'selected' : ''}" id="service-${service.id}">
-        <div class="service-icon">${service.icon || '✂️'}</div>
+        <div class="service-icon">${emoji}</div>
         <div class="service-details">
           <h3 class="service-name">${service.name}</h3>
           <div class="service-meta">

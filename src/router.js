@@ -282,19 +282,43 @@ export const router = {
     const activeQueue = queue.filter(q => q.status === 'active' || q.status === 'serving');
     const currentWaitTime = activeQueue.reduce((sum, c) => sum + (c.service?.duration || 0), 0);
     
-    // Service emoji mapping
-    const serviceEmojis = {
-      'Hair Spa': '💆',
-      'Beard Trim': '🧔',
-      'Haircut (Men)': '💇‍♂️',
-      'Haircut (Women)': '💇‍♀️',
-      'Facial (Basic)': '🧖',
-      'Facial': '🧖',
-      'Shave': '🪒',
-      'Hair Color': '🎨',
-      'Massage': '💆‍♂️',
-      'Manicure': '💅',
-      'Pedicure': '🦶'
+    // Helper function to get service emoji
+    const getServiceEmoji = (serviceName) => {
+      const name = serviceName.toLowerCase();
+      
+      // Hair services
+      if (name.includes('haircut') || name.includes('hair cut')) {
+        if (name.includes('men') || name.includes('male')) return '💇‍♂️';
+        if (name.includes('women') || name.includes('female') || name.includes('ladies')) return '💇‍♀️';
+        return '✂️';
+      }
+      if (name.includes('hair color') || name.includes('coloring') || name.includes('dye')) return '🎨';
+      if (name.includes('hair spa') || name.includes('hair treatment')) return '💆';
+      if (name.includes('hair wash') || name.includes('shampoo')) return '🚿';
+      if (name.includes('blow dry') || name.includes('styling')) return '💨';
+      
+      // Beard services
+      if (name.includes('beard') || name.includes('shave')) return '🧔';
+      
+      // Facial services
+      if (name.includes('facial') || name.includes('face')) return '🧖';
+      if (name.includes('cleanup')) return '✨';
+      
+      // Massage services
+      if (name.includes('massage') || name.includes('head massage')) return '💆‍♂️';
+      
+      // Grooming services
+      if (name.includes('manicure') || name.includes('nail')) return '💅';
+      if (name.includes('pedicure') || name.includes('foot')) return '🦶';
+      if (name.includes('wax') || name.includes('threading')) return '🪒';
+      
+      // Special services
+      if (name.includes('bridal') || name.includes('wedding')) return '👰';
+      if (name.includes('makeup')) return '💄';
+      if (name.includes('mehendi') || name.includes('henna')) return '🖐️';
+      
+      // Default
+      return '✂️';
     };
     
     services.forEach(service => {
@@ -302,7 +326,7 @@ export const router = {
       const queueLength = activeQueue.length;
       
       // Get appropriate emoji
-      const emoji = serviceEmojis[service.name] || service.icon || '✂️';
+      const emoji = getServiceEmoji(service.name);
       
       const card = document.createElement('div');
       card.className = 'service-card service-card-enhanced';
@@ -577,15 +601,35 @@ export const router = {
       statusClass = 'badge-active';
     }
     
+    // Get service details and emoji
+    const service = state.services.find(s => s.id === customer.serviceId);
+    const serviceName = service?.name || 'Unknown Service';
+    const getServiceEmoji = (name) => {
+      const n = name.toLowerCase();
+      if (n.includes('haircut')) return n.includes('men') ? '💇‍♂️' : n.includes('women') ? '💇‍♀️' : '✂️';
+      if (n.includes('hair color')) return '🎨';
+      if (n.includes('hair spa')) return '💆';
+      if (n.includes('beard') || n.includes('shave')) return '🧔';
+      if (n.includes('facial')) return '🧖';
+      if (n.includes('massage')) return '💆‍♂️';
+      if (n.includes('manicure')) return '💅';
+      if (n.includes('pedicure')) return '🦶';
+      return '✂️';
+    };
+    const serviceEmoji = getServiceEmoji(serviceName);
+    
     statusDiv.innerHTML = `
       <div class="queue-status">
+        <div class="service-icon-display" style="font-size: 64px; margin-bottom: 16px;">
+          ${serviceEmoji}
+        </div>
         <div class="badge ${statusClass}" style="font-size: 16px; padding: 12px 24px;">
           ${statusMessage}
         </div>
         <div class="token-number">#${customer.token}</div>
         <h3 style="font-size: 24px; margin-bottom: 8px;">Hello, ${customer.name}!</h3>
         <p style="color: var(--text-secondary); margin-bottom: 32px;">
-          Service: ${state.services.find(s => s.id === customer.serviceId)?.name}
+          Service: ${serviceName}
         </p>
         
         ${customer.status !== 'serving' ? `
