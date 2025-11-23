@@ -5,6 +5,8 @@ import { shopRegistration } from './shopRegistration.js';
 import { adminDashboard } from './adminDashboard.js';
 import { barberLogin } from './barberLogin.js';
 import { barberDashboard } from './barberDashboard.js';
+import { shopList } from './shopList.js';
+import { serviceSelection } from './serviceSelection.js';
 
 // Set API URL - use same origin in production, localhost in development
 window.API_URL = import.meta.env.VITE_API_URL || 
@@ -20,7 +22,23 @@ function init() {
   const params = new URLSearchParams(window.location.search);
   
   // Route handling
-  if (path === '/register-shop') {
+  if (path === '/shops') {
+    shopList.render(app);
+  } else if (path.startsWith('/shop/')) {
+    const barberCode = path.split('/shop/')[1];
+    serviceSelection.render(app, barberCode);
+    
+    // Attach form handler after render
+    setTimeout(() => {
+      const form = document.getElementById('join-queue-form');
+      if (form) {
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          serviceSelection.handleJoinQueue(new FormData(form));
+        };
+      }
+    }, 500);
+  } else if (path === '/register-shop') {
     shopRegistration.render(app);
   } else if (path === '/application-submitted') {
     renderApplicationSubmitted(app);

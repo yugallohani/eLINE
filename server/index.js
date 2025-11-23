@@ -387,6 +387,67 @@ app.delete('/api/queue/:id', async (req, res) => {
   }
 });
 
+// Get list of all approved shops
+app.get('/api/shops/list', async (req, res) => {
+  try {
+    const shops = await prisma.business.findMany({
+      where: {
+        status: 'approved',
+        barberCode: { not: null }
+      },
+      include: {
+        _count: {
+          select: {
+            services: { where: { active: true } },
+            customers: { where: { status: { in: ['pending', 'active', 'serving'] } } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    res.json(shops);
+  } catch (error) {
+    console.error('Get shops list error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get business by barber code
+app.get('/api/business/:barberCode', async (req, res) => {
+  try {
+    const { barberCode } = req.params;
+    
+    const business = await prisma.business.findUnique({
+      where: { barberCode },
+      include: {
+        _count: {
+          select: {
+            customers: { where: { status: { in: ['pending', 'active', 'serving'] } } }
+          }
+        }
+      }
+    });
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Shop not found' });
+    }
+    
+    const services = await prisma.service.findMany({
+      where: {
+        businessId: business.id,
+        active: true
+      },
+      orderBy: { name: 'asc' }
+    });
+    
+    res.json({ business, services });
+  } catch (error) {
+    console.error('Get business error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Generate QR code for business
 app.get('/api/qr/:businessId', async (req, res) => {
   try {

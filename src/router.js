@@ -53,7 +53,7 @@ export const router = {
             </p>
             
             <div class="hero-buttons">
-              <button class="btn btn-primary btn-large" onclick="window.location.href='/?join=true'">
+              <button class="btn btn-primary btn-large" onclick="window.location.href='/shops'">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="margin-right: 8px;">
                   <path d="M4 4H8V8H4V4ZM12 4H16V8H12V4ZM4 12H8V16H4V12Z" fill="currentColor"/>
                 </svg>
