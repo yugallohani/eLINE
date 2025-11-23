@@ -3009,7 +3009,7 @@ input:checked + .slider:before {
   background: var(--bg-tertiary);
   border-radius: 8px 8px 0 0;
   position: relative;
-  min-height: 20px;
+  min-height: 30px;
   transition: all 0.3s ease;
 }
 

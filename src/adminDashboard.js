@@ -837,21 +837,30 @@ export const adminDashboard = {
         <div class="admin-section">
           <h2 class="admin-section-title">📊 Customer Trends (Last 7 Days)</h2>
           <div class="chart-container">
-            <div class="bar-chart">
-              ${last7Days.map(day => {
-                const height = (day.totalCustomers / maxCustomers) * 100;
-                const date = new Date(day.date);
-                return `
-                  <div class="bar-item">
-                    <div class="bar-value">${day.totalCustomers || 0}</div>
-                    <div class="bar" style="height: ${height}%">
-                      <div class="bar-fill"></div>
+            ${last7Days.length > 0 ? `
+              <div class="bar-chart">
+                ${last7Days.map(day => {
+                  const customers = day.totalCustomers || 0;
+                  const height = maxCustomers > 0 ? (customers / maxCustomers) * 100 : 0;
+                  const displayHeight = height > 0 ? Math.max(height, 10) : 5; // Minimum 5% height for visibility
+                  const date = new Date(day.date);
+                  return `
+                    <div class="bar-item">
+                      <div class="bar-value">${customers}</div>
+                      <div class="bar" style="height: ${displayHeight}%; ${customers === 0 ? 'opacity: 0.3;' : ''}">
+                        <div class="bar-fill"></div>
+                      </div>
+                      <div class="bar-label">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                     </div>
-                    <div class="bar-label">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+                <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                <p>No data available yet. Data will appear as customers join queues.</p>
+              </div>
+            `}
           </div>
         </div>
         
