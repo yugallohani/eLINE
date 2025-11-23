@@ -738,7 +738,14 @@ export const adminDashboard = {
                 <td>${shop._count.customers}</td>
                 <td><span class="badge badge-${shop.status === 'approved' ? 'active' : 'pending'}">${shop.status}</span></td>
                 <td>
-                  <button class="btn btn-secondary btn-sm">View</button>
+                  <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="adminDashboard.viewShop('${shop.id}')">
+                      👁️ View
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="adminDashboard.deleteShop('${shop.id}', '${shop.name}')">
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             `).join('')}
@@ -746,6 +753,189 @@ export const adminDashboard = {
         </table>
       </div>
     `;
+  },
+  
+  async viewShop(id) {
+    try {
+      const response = await fetch(`/api/admin/shops/${id}`, {
+        headers: { 'Authorization': `Bearer ${this.token}` }
+      });
+      
+      if (!response.ok) throw new Error('Failed to load shop');
+      
+      const shop = await response.json();
+      this.showShopModal(shop);
+    } catch (error) {
+      alert('Error loading shop: ' + error.message);
+    }
+  },
+  
+  showShopModal(shop) {
+    // Parse operating hours
+    const hours = typeof shop.operatingHours === 'string'
+      ? JSON.parse(shop.operatingHours)
+      : (shop.operatingHours || {});
+    
+    // Check which documents are available
+    const documents = [
+      { name: 'Aadhaar Card', url: shop.aadhaarUrl },
+      { name: 'PAN Card', url: shop.panUrl },
+      { name: 'Shop License', url: shop.shopLicenseUrl },
+      { name: 'GST Certificate', url: shop.gstCertUrl },
+      { name: 'Business Registration', url: shop.businessRegUrl }
+    ].filter(doc => doc.url && doc.url.trim() !== '');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+          <h2>Shop Details</h2>
+          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+        </div>
+        
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <!-- Shop Information -->
+          <div class="review-section">
+            <h3 style="margin-bottom: 16px; color: var(--accent-primary);">🏪 Shop Information</h3>
+            <div class="review-grid">
+              <div class="review-item">
+                <label>Shop Name</label>
+                <div class="review-value">${shop.name}</div>
+              </div>
+              <div class="review-item">
+                <label>Barber Code</label>
+                <div class="review-value"><code>${shop.barberCode}</code></div>
+              </div>
+              <div class="review-item">
+                <label>Number of Barbers</label>
+                <div class="review-value">${shop.numberOfBarbers || 'N/A'}</div>
+              </div>
+              <div class="review-item" style="grid-column: 1 / -1;">
+                <label>Full Address</label>
+                <div class="review-value">${shop.address}${shop.area ? ', ' + shop.area : ''}, ${shop.city}, ${shop.state} ${shop.pincode}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Owner Information -->
+          <div class="review-section">
+            <h3 style="margin-bottom: 16px; color: var(--accent-primary);">👤 Owner Information</h3>
+            <div class="review-grid">
+              <div class="review-item">
+                <label>Owner Name</label>
+                <div class="review-value">${shop.ownerName}</div>
+              </div>
+              <div class="review-item">
+                <label>Phone Number</label>
+                <div class="review-value">${shop.phone}</div>
+              </div>
+              <div class="review-item">
+                <label>Email</label>
+                <div class="review-value">${shop.email || 'Not provided'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Services -->
+          <div class="review-section">
+            <h3 style="margin-bottom: 16px; color: var(--accent-primary);">✂️ Services</h3>
+            ${shop.services && shop.services.length > 0 ? `
+              <div class="services-list">
+                ${shop.services.map(service => `
+                  <div class="service-item" style="display: flex; justify-content: space-between; padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 8px;">
+                    <div>
+                      <strong>${service.name}</strong>
+                      <div style="font-size: 12px; color: var(--text-tertiary);">${service.duration} minutes</div>
+                    </div>
+                    <div style="font-weight: 600; color: var(--accent-primary);">₹${service.price}</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : '<p style="color: var(--text-secondary);">No services configured</p>'}
+          </div>
+          
+          <!-- Operating Hours -->
+          <div class="review-section">
+            <h3 style="margin-bottom: 16px; color: var(--accent-primary);">🕐 Operating Hours</h3>
+            <div class="review-grid">
+              <div class="review-item">
+                <label>Opening Time</label>
+                <div class="review-value">${hours.opening || 'Not specified'}</div>
+              </div>
+              <div class="review-item">
+                <label>Closing Time</label>
+                <div class="review-value">${hours.closing || 'Not specified'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Documents -->
+          ${documents.length > 0 ? `
+            <div class="review-section">
+              <h3 style="margin-bottom: 16px; color: var(--accent-primary);">📄 Uploaded Documents</h3>
+              <div class="documents-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                ${documents.map(doc => `
+                  <a href="${doc.url}" target="_blank" download class="document-card" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
+                    <div style="font-size: 24px;">📎</div>
+                    <div style="flex: 1;">
+                      <div style="font-weight: 600; font-size: 14px;">${doc.name}</div>
+                      <div style="font-size: 12px; color: var(--accent-primary);">Download</div>
+                    </div>
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          <!-- Status -->
+          <div class="review-section">
+            <h3 style="margin-bottom: 16px; color: var(--accent-primary);">📊 Status</h3>
+            <div class="review-item">
+              <label>Current Status</label>
+              <div><span class="badge badge-${shop.status === 'approved' ? 'active' : 'pending'}">${shop.status}</span></div>
+            </div>
+            <div class="review-item" style="margin-top: 12px;">
+              <label>Created On</label>
+              <div class="review-value">${new Date(shop.createdAt).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close on overlay click
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove();
+    };
+  },
+  
+  async deleteShop(id, name) {
+    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone and will remove all associated data including customers and services.`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/admin/shops/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${this.token}` }
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete shop');
+      
+      alert('✅ Shop deleted successfully');
+      await this.loadView('shops');
+    } catch (error) {
+      alert('Error deleting shop: ' + error.message);
+    }
   },
   
   async renderAnalyticsView(content) {

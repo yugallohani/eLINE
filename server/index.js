@@ -1222,6 +1222,34 @@ app.get('/api/admin/shops/:id', authMiddleware.requireAuth, authMiddleware.requi
   }
 });
 
+// Delete shop
+app.delete('/api/admin/shops/:id', authMiddleware.requireAuth, authMiddleware.requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if shop exists
+    const shop = await prisma.business.findUnique({
+      where: { id }
+    });
+    
+    if (!shop) {
+      return res.status(404).json({ error: 'Shop not found' });
+    }
+    
+    // Delete shop (cascade will delete related records)
+    await prisma.business.delete({
+      where: { id }
+    });
+    
+    console.log(`✅ Shop deleted: ${shop.name} (${id})`);
+    
+    res.json({ success: true, message: 'Shop deleted successfully' });
+  } catch (error) {
+    console.error('Delete shop error:', error);
+    res.status(500).json({ error: 'Failed to load shop' });
+  }
+});
+
 // Suspend shop
 app.post('/api/admin/shops/:id/suspend', authMiddleware.requireAuth, authMiddleware.requireAdmin, async (req, res) => {
   try {
