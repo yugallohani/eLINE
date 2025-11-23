@@ -25,7 +25,7 @@ const wss = new WebSocketServer({ server });
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: true, // Allow same origin
   credentials: true
 }));
 app.use(compression());
@@ -33,6 +33,11 @@ app.use(express.json());
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Serve static frontend files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../dist')));
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -1243,6 +1248,13 @@ function generateSubdomain(shopName) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .substring(0, 30) + '-' + Math.random().toString(36).substring(2, 6);
+}
+
+// Catch-all route to serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
 }
 
 const PORT = process.env.PORT || 3000;

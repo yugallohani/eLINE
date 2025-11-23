@@ -7,9 +7,10 @@ export const state = {
   businessId: 'demo',
   
   connectWebSocket() {
-    const API_URL = window.API_URL || 'http://localhost:3000';
+    const API_URL = window.API_URL || window.location.origin;
     const wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
     
+    console.log('Connecting to WebSocket:', wsUrl);
     this.ws = new WebSocket(wsUrl);
     
     this.ws.onmessage = (event) => {

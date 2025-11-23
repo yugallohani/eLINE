@@ -1,9 +1,9 @@
 services:
-  # Backend API Service
+  # Full Stack Service (Frontend + Backend)
   - type: web
-    name: eline-backend
+    name: eline
     env: node
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm run server
     envVars:
       - key: NODE_ENV
@@ -15,7 +15,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: PORT
-        value: 3000
+        value: 10000
 
 databases:
   # PostgreSQL Database

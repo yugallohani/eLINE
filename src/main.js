@@ -6,8 +6,9 @@ import { adminDashboard } from './adminDashboard.js';
 import { barberLogin } from './barberLogin.js';
 import { barberDashboard } from './barberDashboard.js';
 
-// Set API URL from environment variable
-window.API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Set API URL - use same origin in production, localhost in development
+window.API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? window.location.origin : 'http://localhost:3000');
 console.log('API URL:', window.API_URL);
 
 // Initialize app

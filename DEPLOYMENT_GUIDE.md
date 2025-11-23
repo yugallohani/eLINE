@@ -1,167 +1,273 @@
-# eLINE Deployment Guide 🚀
+# eLINE Deployment Guide - Render Only 🚀
 
-## Quick Deployment Steps
+## Single Service Deployment (Frontend + Backend on Render)
 
-### Step 1: Deploy Backend to Render (30 mins)
+### Step 1: Create Render Account (2 mins)
 
-1. **Go to [render.com](https://render.com)** and sign up with GitHub
+1. Go to [render.com](https://render.com)
+2. Sign up with your GitHub account
+3. Authorize Render to access your repositories
 
-2. **Create PostgreSQL Database:**
-   - Click "New +" → "PostgreSQL"
+---
+
+### Step 2: Create PostgreSQL Database (15 mins)
+
+1. **Click "New +" → "PostgreSQL"**
+
+2. **Configure Database:**
    - Name: `eline-db`
    - Database: `eline`
    - User: `eline`
-   - Region: Choose closest to you
+   - Region: **Singapore** (or closest to you)
+   - PostgreSQL Version: 16
    - Plan: **Free**
-   - Click "Create Database"
-   - **WAIT 10-15 minutes** for provisioning
-   - Copy the "Internal Database URL" (starts with `postgres://`)
 
-3. **Create Web Service:**
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repo: `yugallohani/eLINE`
-   - Name: `eline-backend`
-   - Region: Same as database
-   - Branch: `main`
-   - Root Directory: (leave empty)
-   - Runtime: **Node**
-   - Build Command: `npm install && npx prisma generate`
-   - Start Command: `npm run server`
-   - Plan: **Free**
+3. **Click "Create Database"**
+
+4. **WAIT 10-15 minutes** for database provisioning
+   - You'll see "Creating..." status
+   - Wait until it shows "Available"
+
+5. **Copy Database URL:**
+   - Once available, click on the database
+   - Find "Internal Database URL"
+   - Copy it (starts with `postgres://`)
+   - Keep it handy for next step
+
+---
+
+### Step 3: Deploy Full Stack Service (20 mins)
+
+1. **Click "New +" → "Web Service"**
+
+2. **Connect Repository:**
+   - Click "Connect a repository"
+   - Find and select: `yugallohani/eLINE`
+   - Click "Connect"
+
+3. **Configure Service:**
+   - **Name:** `eline`
+   - **Region:** Same as database (Singapore)
+   - **Branch:** `main`
+   - **Root Directory:** (leave empty)
+   - **Runtime:** Node
+   - **Build Command:** 
+     ```
+     npm install && npx prisma generate && npm run build
+     ```
+   - **Start Command:**
+     ```
+     npm run server
+     ```
+   - **Plan:** Free
 
 4. **Add Environment Variables:**
-   Click "Environment" tab and add:
+   Click "Advanced" → "Add Environment Variable"
+   
+   Add these variables:
+   
    ```
    NODE_ENV=production
-   DATABASE_URL=<paste your database URL from step 2>
-   JWT_SECRET=your-super-secret-jwt-key-change-this
-   PORT=3000
+   ```
+   
+   ```
+   DATABASE_URL=<paste your database URL from Step 2>
+   ```
+   
+   ```
+   JWT_SECRET=eline-super-secret-jwt-key-2024-change-this-in-production
+   ```
+   
+   ```
+   PORT=10000
    ```
 
-5. **Deploy:**
-   - Click "Create Web Service"
-   - Wait 5-10 minutes for build
-   - Note your backend URL: `https://eline-backend.onrender.com`
+5. **Click "Create Web Service"**
 
-6. **Run Database Migration:**
-   - Go to your service → "Shell" tab
-   - Run: `npx prisma db push`
-   - Run: `node scripts/seed-demo-barber.js` (optional - for demo data)
+6. **Wait for Build (5-10 minutes)**
+   - You'll see build logs
+   - Wait for "Build successful"
+   - Then wait for "Deploy live"
+
+7. **Your App is Live!**
+   - You'll get a URL like: `https://eline.onrender.com`
+   - Copy this URL
 
 ---
 
-### Step 2: Deploy Frontend to Vercel (10 mins)
+### Step 4: Initialize Database (5 mins)
 
-1. **Go to [vercel.com](https://vercel.com)** and sign up with GitHub
+1. **Go to your service dashboard**
 
-2. **Import Project:**
-   - Click "Add New..." → "Project"
-   - Import `yugallohani/eLINE`
-   - Click "Import"
+2. **Click "Shell" tab** (top right)
 
-3. **Configure Project:**
-   - Framework Preset: **Vite**
-   - Root Directory: (leave as is)
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Install Command: `npm install`
+3. **Run database migration:**
+   ```bash
+   npx prisma db push
+   ```
+   Wait for "✅ Database synchronized"
 
-4. **Add Environment Variable:**
-   - Click "Environment Variables"
-   - Add:
-     ```
-     Name: VITE_API_URL
-     Value: https://eline-backend.onrender.com
-     ```
-   - Select all environments (Production, Preview, Development)
+4. **Create demo data (optional):**
+   ```bash
+   node scripts/seed-demo-barber.js
+   ```
 
-5. **Deploy:**
-   - Click "Deploy"
-   - Wait 2-3 minutes
-   - Note your frontend URL: `https://eline.vercel.app`
+5. **Done!** Your database is ready
 
 ---
 
-### Step 3: Update Backend with Frontend URL
+### Step 5: Test Your Deployment (5 mins)
 
-1. **Go back to Render dashboard**
-2. **Open your `eline-backend` service**
-3. **Go to "Environment" tab**
-4. **Add new environment variable:**
-   ```
-   FRONTEND_URL=https://eline.vercel.app
-   ```
-5. **Save Changes** (service will auto-redeploy)
+1. **Visit your URL:** `https://eline.onrender.com`
 
----
+2. **Test Homepage:**
+   - Should see eLINE landing page
+   - Click "Join Queue" button
 
-### Step 4: Test Your Deployment
+3. **Test Admin Panel:**
+   - Go to: `https://eline.onrender.com/super-admin`
+   - Login:
+     - Email: `admin@eline.app`
+     - Password: `admin123`
 
-1. **Visit your frontend:** `https://eline.vercel.app`
-2. **Test customer flow:** Click "Join Queue"
-3. **Test barber login:** Go to `/barber-login`
-4. **Test admin panel:** Go to `/super-admin`
-   - Email: `admin@eline.app`
-   - Password: `admin123`
+4. **Test Barber Login:**
+   - Go to: `https://eline.onrender.com/barber-login`
+   - If you ran seed script:
+     - Code: `BARBER-DEMO`
+     - Password: `demo123`
+
+5. **Test Shop Registration:**
+   - Go to: `https://eline.onrender.com/register-shop`
+   - Fill and submit form
 
 ---
 
 ## Your Deployed URLs
 
-After deployment, you'll have:
+After deployment:
 
-- **Frontend:** `https://eline.vercel.app`
-- **Backend API:** `https://eline-backend.onrender.com`
-- **Database:** Managed by Render
+- **Full App:** `https://eline.onrender.com`
+- **Admin Panel:** `https://eline.onrender.com/super-admin`
+- **Barber Login:** `https://eline.onrender.com/barber-login`
+- **Shop Registration:** `https://eline.onrender.com/register-shop`
+- **API:** `https://eline.onrender.com/api/*`
 
 ---
 
 ## Important Notes
 
-### Render Free Tier Limitations:
-- ⚠️ **Spins down after 15 minutes of inactivity**
-- ⚠️ **Takes 30-50 seconds to wake up** on first request
-- ✅ **750 hours/month free** (enough for demo)
-- ✅ **PostgreSQL database included**
+### ⚠️ Render Free Tier Limitations:
 
-### For Demo Tomorrow:
-1. **Wake up the backend** 10 minutes before demo
-2. **Visit** `https://eline-backend.onrender.com/api/health` to wake it up
-3. **Keep a tab open** to prevent sleep during demo
+1. **Spins down after 15 minutes of inactivity**
+   - First request takes 30-50 seconds to wake up
+   - Keep a tab open during demo
+
+2. **750 hours/month free**
+   - More than enough for demo and testing
+
+3. **Automatic deploys**
+   - Every push to `main` branch triggers new deployment
+
+### 💡 For Demo Tomorrow:
+
+1. **Wake up service 10 minutes before demo:**
+   - Visit `https://eline.onrender.com`
+   - Wait for it to load
+   - Keep tab open
+
+2. **Test all flows beforehand:**
+   - Customer queue joining
+   - Barber dashboard
+   - Admin panel
+
+3. **Have backup plan:**
+   - Take screenshots
+   - Record video demo
+   - Have localhost ready
 
 ---
 
 ## Troubleshooting
 
-### Backend not responding:
-- Wait 30-50 seconds (it's waking up)
-- Check Render logs for errors
-- Verify DATABASE_URL is correct
-
-### Frontend can't connect to backend:
-- Check VITE_API_URL in Vercel
-- Check CORS settings in backend
-- Check browser console for errors
+### Service won't start:
+- Check build logs in Render dashboard
+- Verify all environment variables are set
+- Check DATABASE_URL is correct
 
 ### Database connection failed:
-- Verify DATABASE_URL in Render
-- Run `npx prisma db push` in Render shell
-- Check database is running in Render
+- Verify DATABASE_URL in environment variables
+- Make sure database is "Available" status
+- Run `npx prisma db push` in Shell
+
+### Page shows 404:
+- Wait 30-50 seconds (service is waking up)
+- Check deployment status in dashboard
+- Verify build completed successfully
+
+### API calls failing:
+- Check browser console for errors
+- Verify service is running
+- Check logs in Render dashboard
 
 ---
 
-## Next Steps After Deployment
+## Deployment Checklist
 
-1. ✅ Test all features on production
-2. ✅ Create demo shop accounts
-3. ✅ Generate QR codes with production URL
-4. ✅ Test on mobile devices
-5. ✅ Prepare for demo tomorrow!
+- [ ] Create Render account
+- [ ] Create PostgreSQL database (wait for provisioning)
+- [ ] Copy database URL
+- [ ] Create web service
+- [ ] Add environment variables
+- [ ] Wait for build and deploy
+- [ ] Run database migration in Shell
+- [ ] Test all pages
+- [ ] Create demo data
+- [ ] Test on mobile
+- [ ] Ready for demo! 🎉
+
+---
+
+## After Deployment
+
+### Create Demo Accounts:
+
+1. **Admin already exists:**
+   - Email: `admin@eline.app`
+   - Password: `admin123`
+
+2. **Create demo shop:**
+   - Register via `/register-shop`
+   - Approve via admin panel
+   - Get barber code
+
+3. **Generate QR codes:**
+   - Use production URL
+   - Print or display on device
+
+---
+
+## Cost Breakdown
+
+- **Render Web Service:** FREE (750 hrs/month)
+- **PostgreSQL Database:** FREE
+- **Total:** $0/month 💰
 
 ---
 
 ## Need Help?
 
-- Render Docs: https://render.com/docs
-- Vercel Docs: https://vercel.com/docs
-- Check service logs in respective dashboards
+- **Render Docs:** https://render.com/docs
+- **Check Logs:** Render Dashboard → Your Service → Logs
+- **Database Issues:** Render Dashboard → Database → Logs
+- **Build Errors:** Check build logs in deployment
+
+---
+
+## Next Steps
+
+1. ✅ Deploy to Render (follow steps above)
+2. ✅ Test all features
+3. ✅ Build QR code flow (I'll do this)
+4. ✅ Build shop list (I'll do this)
+5. ✅ Generate QR codes
+6. ✅ Demo ready! 🚀
