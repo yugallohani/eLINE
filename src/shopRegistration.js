@@ -298,11 +298,11 @@ export const shopRegistration = {
               <div class="file-name" id="gst-name"></div>
             </div>
             
-            <div class="document-upload-card">
+            <div class="document-upload-card required">
               <div class="document-icon">📸</div>
-              <h4>Shop Photos</h4>
-              <p>Front view of shop (optional)</p>
-              <input type="file" id="photos-upload" accept="image/*" multiple hidden>
+              <h4>Shop Photos *</h4>
+              <p>Front view of shop (will be used as logo)</p>
+              <input type="file" id="photos-upload" accept="image/*" required hidden>
               <label for="photos-upload" class="btn btn-secondary btn-sm">Choose Files</label>
               <div class="file-name" id="photos-name"></div>
             </div>

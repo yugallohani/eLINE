@@ -84,11 +84,28 @@ export const shopList = {
     const serviceCount = shop._count?.services || 0;
     const queueCount = shop._count?.customers || 0;
     
+    // Get shop photo from shopPhotos array
+    let shopLogo = '✂️';
+    if (shop.shopPhotos && typeof shop.shopPhotos === 'string') {
+      try {
+        const photos = JSON.parse(shop.shopPhotos);
+        if (Array.isArray(photos) && photos.length > 0) {
+          shopLogo = `<img src="${photos[0]}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+        }
+      } catch (e) {
+        console.error('Error parsing shop photos:', e);
+      }
+    } else if (Array.isArray(shop.shopPhotos) && shop.shopPhotos.length > 0) {
+      shopLogo = `<img src="${shop.shopPhotos[0]}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+    } else if (shop.logoUrl) {
+      shopLogo = `<img src="${shop.logoUrl}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+    }
+    
     return `
       <div class="shop-card" id="shop-${shop.id}">
         <div class="shop-card-header">
           <div class="shop-icon">
-            ${shop.logoUrl ? `<img src="${shop.logoUrl}" alt="${shop.name}">` : '✂️'}
+            ${shopLogo}
           </div>
           <div class="shop-badge ${queueCount > 5 ? 'busy' : queueCount > 0 ? 'active' : 'available'}">
             ${queueCount > 5 ? '🔴 Busy' : queueCount > 0 ? '🟡 Active' : '🟢 Available'}

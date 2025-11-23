@@ -1034,6 +1034,21 @@ app.post('/api/admin/applications/:id/approve', authMiddleware.requireAuth, auth
     const tempPassword = generateTempPassword();
     const passwordHash = await authMiddleware.hashPassword(tempPassword);
     
+    // Extract logo from shop photos
+    let logoUrl = null;
+    if (application.shopPhotos) {
+      try {
+        const photos = typeof application.shopPhotos === 'string' 
+          ? JSON.parse(application.shopPhotos) 
+          : application.shopPhotos;
+        if (Array.isArray(photos) && photos.length > 0) {
+          logoUrl = photos[0]; // Use first photo as logo
+        }
+      } catch (e) {
+        console.error('Error parsing shop photos:', e);
+      }
+    }
+    
     // Create business
     const business = await prisma.business.create({
       data: {
@@ -1053,6 +1068,7 @@ app.post('/api/admin/applications/:id/approve', authMiddleware.requireAuth, auth
         numberOfBarbers: application.numberOfBarbers,
         operatingHours: application.operatingHours,
         shopPhotos: application.shopPhotos,
+        logoUrl: logoUrl, // Set logo from first shop photo
         aadhaarUrl: application.aadhaarUrl,
         panUrl: application.panUrl,
         shopLicenseUrl: application.shopLicenseUrl,
