@@ -1,0 +1,249 @@
+// Prisma Schema for eLINE Queue Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id                String    @id @default(cuid())
+  name              String
+  subdomain         String    @unique
+  ownerName         String
+  phone             String
+  email             String
+  address           String
+  street            String?
+  area              String?
+  city              String?
+  state             String?
+  pincode           String?
+  latitude          Float?
+  longitude         Float?
+  
+  // Business Details
+  logoUrl           String?
+  shopPhotos        Json?     // Array of photo URLs
+  primaryColor      String    @default("#6366f1")
+  description       String?
+  numberOfBarbers   Int       @default(1)
+  
+  // Operating Hours
+  operatingHours    Json?     // {monday: {open: "09:00", close: "18:00"}, ...}
+  
+  // Documents
+  aadhaarUrl        String?
+  panUrl            String?
+  shopLicenseUrl    String?
+  gstCertUrl        String?
+  businessRegUrl    String?
+  
+  // Verification Status
+  status            String    @default("pending") // pending, approved, rejected, suspended
+  verificationNotes String?
+  verifiedAt        DateTime?
+  verifiedBy        String?   // Admin ID who verified
+  
+  // Barber Code
+  barberCode        String?   @unique
+  codeGeneratedAt   DateTime?
+  
+  // Password for barber login
+  passwordHash      String?
+  
+  // Settings
+  settings          Json?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  services          Service[]
+  customers         Customer[]
+  analytics         Analytics[]
+  
+  @@index([status])
+  @@index([barberCode])
+  @@index([email])
+  @@map("businesses")
+}
+
+model Service {
+  id            String    @id @default(cuid())
+  businessId    String
+  name          String
+  duration      Int       // in minutes
+  icon          String    @default("✂️")
+  price         Float?
+  description   String?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customers     Customer[]
+  
+  @@map("services")
+}
+
+model Customer {
+  id                String    @id @default(cuid())
+  businessId        String
+  serviceId         String
+  token             Int
+  name              String
+  phone             String
+  email             String?
+  notes             String?
+  status            String    @default("pending") // pending, active, serving, completed, cancelled, no_show
+  notificationsSent Json?     // Track which notifications were sent
+  joinedAt          DateTime  @default(now())
+  approvedAt        DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  notifiedAt        DateTime?
+  estimatedWait     Int?      // in minutes
+  actualWait        Int?      // in minutes
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  business          Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service           Service   @relation(fields: [serviceId], references: [id])
+  visits            CustomerVisit[]
+  
+  @@index([businessId, status])
+  @@index([token])
+  @@index([phone])
+  @@map("customers")
+}
+
+model CustomerVisit {
+  id            String    @id @default(cuid())
+  customerId    String
+  phone         String
+  visitCount    Int       @default(1)
+  lastVisit     DateTime  @default(now())
+  totalSpent    Float?
+  loyaltyPoints Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  @@unique([customerId, phone])
+  @@index([phone])
+  @@map("customer_visits")
+}
+
+model Analytics {
+  id              String    @id @default(cuid())
+  businessId      String
+  date            DateTime  @default(now())
+  totalCustomers  Int       @default(0)
+  completedServices Int     @default(0)
+  cancelledServices Int     @default(0)
+  noShows         Int       @default(0)
+  avgWaitTime     Float?
+  peakHour        Int?
+  revenue         Float?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  
+  business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  @@index([businessId, date])
+  @@map("analytics")
+}
+
+model Notification {
+  id            String    @id @default(cuid())
+  phone         String
+  message       String
+  type          String    // sms, whatsapp, email
+  status        String    @default("pending") // pending, sent, failed
+  provider      String?   // twilio, whatsapp_business
+  providerId    String?   // External provider message ID
+  error         String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+  
+  @@index([phone])
+  @@index([status])
+  @@map("notifications")
+}
+
+model AutomationLog {
+  id            String    @id @default(cuid())
+  type          String    // no_show_removal, feedback_request, loyalty_reward, etc.
+  customerId    String?
+  status        String    @default("pending")
+  result        Json?
+  error         String?
+  executedAt    DateTime  @default(now())
+  
+  @@index([type, status])
+  @@map("automation_logs")
+}
+
+model Admin {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("admin") // admin, super_admin
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("admins")
+}
+
+model ShopApplication {
+  id                String    @id @default(cuid())
+  businessId        String?   @unique
+  
+  // Shop Details
+  shopName          String
+  ownerName         String
+  phone             String
+  email             String
+  address           String
+  street            String?
+  area              String?
+  city              String?
+  state             String?
+  pincode           String?
+  latitude          Float?
+  longitude         Float?
+  
+  // Business Info
+  numberOfBarbers   Int
+  servicesOffered   Json      // Array of service names
+  operatingHours    Json
+  shopPhotos        Json?
+  
+  // Documents
+  aadhaarUrl        String
+  panUrl            String?
+  shopLicenseUrl    String?
+  gstCertUrl        String?
+  businessRegUrl    String?
+  
+  // Application Status
+  status            String    @default("pending") // pending, under_review, approved, rejected
+  reviewNotes       String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  
+  // Timestamps
+  submittedAt       DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([status])
+  @@index([email])
+  @@map("shop_applications")
+}

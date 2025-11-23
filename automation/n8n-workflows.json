@@ -1,0 +1,206 @@
+{
+  "name": "eLINE Automation Workflows",
+  "workflows": [
+    {
+      "name": "No-Show Auto-Remove",
+      "description": "Automatically remove customers who don't show up after notification",
+      "trigger": "Every 5 minutes",
+      "steps": [
+        {
+          "type": "HTTP Request",
+          "method": "GET",
+          "url": "{{$env.API_URL}}/api/queue",
+          "description": "Fetch current queue"
+        },
+        {
+          "type": "Filter",
+          "condition": "status === 'serving' AND notifiedAt < (now - 15 minutes)",
+          "description": "Find customers who were notified but didn't show"
+        },
+        {
+          "type": "HTTP Request",
+          "method": "DELETE",
+          "url": "{{$env.API_URL}}/api/queue/{{$item.id}}",
+          "description": "Remove no-show customers"
+        },
+        {
+          "type": "SMS",
+          "to": "{{$item.phone}}",
+          "message": "Hi {{$item.name}}, we noticed you missed your turn. Please rejoin the queue when you're ready.",
+          "description": "Send courtesy message"
+        }
+      ]
+    },
+    {
+      "name": "Peak Hour Analytics",
+      "description": "Analyze queue patterns and predict busy times",
+      "trigger": "Daily at 11 PM",
+      "steps": [
+        {
+          "type": "HTTP Request",
+          "method": "GET",
+          "url": "{{$env.API_URL}}/api/analytics/daily",
+          "description": "Fetch daily queue data"
+        },
+        {
+          "type": "Code",
+          "code": "// Analyze peak hours\nconst hourlyData = {};\nitems.forEach(item => {\n  const hour = new Date(item.joinedAt).getHours();\n  hourlyData[hour] = (hourlyData[hour] || 0) + 1;\n});\n\nconst peakHour = Object.entries(hourlyData)\n  .sort((a, b) => b[1] - a[1])[0];\n\nreturn { peakHour: peakHour[0], count: peakHour[1] };",
+          "description": "Calculate peak hours"
+        },
+        {
+          "type": "Database",
+          "operation": "INSERT",
+          "table": "analytics",
+          "data": "{{$json}}",
+          "description": "Store analytics data"
+        },
+        {
+          "type": "Email",
+          "to": "manager@business.com",
+          "subject": "Daily Queue Analytics",
+          "body": "Peak hour today: {{$json.peakHour}}:00 with {{$json.count}} customers",
+          "description": "Send report to manager"
+        }
+      ]
+    },
+    {
+      "name": "Customer Feedback Request",
+      "description": "Send feedback form after service completion",
+      "trigger": "Webhook - Service Completed",
+      "steps": [
+        {
+          "type": "Wait",
+          "duration": "5 minutes",
+          "description": "Wait before sending feedback request"
+        },
+        {
+          "type": "SMS",
+          "to": "{{$webhook.customer.phone}}",
+          "message": "Hi {{$webhook.customer.name}}! How was your experience? Rate us: {{$env.APP_URL}}/feedback/{{$webhook.customer.token}}",
+          "description": "Send feedback request"
+        }
+      ]
+    },
+    {
+      "name": "Loyalty Rewards",
+      "description": "Track visits and send loyalty rewards",
+      "trigger": "Webhook - Service Completed",
+      "steps": [
+        {
+          "type": "Database",
+          "operation": "SELECT",
+          "table": "customer_visits",
+          "where": "phone = {{$webhook.customer.phone}}",
+          "description": "Get customer visit count"
+        },
+        {
+          "type": "Code",
+          "code": "const visitCount = items[0]?.visit_count || 0;\nconst newCount = visitCount + 1;\nreturn { visitCount: newCount, isReward: newCount % 5 === 0 };",
+          "description": "Calculate if reward eligible"
+        },
+        {
+          "type": "Database",
+          "operation": "UPSERT",
+          "table": "customer_visits",
+          "data": "{ phone: {{$webhook.customer.phone}}, visit_count: {{$json.visitCount}} }",
+          "description": "Update visit count"
+        },
+        {
+          "type": "IF",
+          "condition": "{{$json.isReward}} === true",
+          "description": "Check if reward earned"
+        },
+        {
+          "type": "SMS",
+          "to": "{{$webhook.customer.phone}}",
+          "message": "🎉 Congratulations! You've earned a 20% discount on your next visit. Show this message at checkout.",
+          "description": "Send reward notification"
+        }
+      ]
+    },
+    {
+      "name": "Google Calendar Sync",
+      "description": "Sync queue appointments to Google Calendar",
+      "trigger": "Webhook - Customer Approved",
+      "steps": [
+        {
+          "type": "HTTP Request",
+          "method": "GET",
+          "url": "{{$env.API_URL}}/api/queue/status/{{$webhook.customer.token}}",
+          "description": "Get estimated time"
+        },
+        {
+          "type": "Code",
+          "code": "const startTime = new Date(Date.now() + $json.estimatedWait * 60000);\nconst endTime = new Date(startTime.getTime() + $webhook.customer.serviceDuration * 60000);\nreturn { startTime, endTime };",
+          "description": "Calculate appointment time"
+        },
+        {
+          "type": "Google Calendar",
+          "operation": "CREATE_EVENT",
+          "calendar": "primary",
+          "event": {
+            "summary": "{{$webhook.customer.name}} - Token #{{$webhook.customer.token}}",
+            "description": "Service: {{$webhook.service.name}}\\nPhone: {{$webhook.customer.phone}}",
+            "start": "{{$json.startTime}}",
+            "end": "{{$json.endTime}}"
+          },
+          "description": "Create calendar event"
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp Queue Updates",
+      "description": "Send queue updates via WhatsApp Business API",
+      "trigger": "Webhook - Queue Position Changed",
+      "steps": [
+        {
+          "type": "IF",
+          "condition": "{{$webhook.position}} <= 3",
+          "description": "Only notify when close to turn"
+        },
+        {
+          "type": "HTTP Request",
+          "method": "POST",
+          "url": "https://graph.facebook.com/v18.0/{{$env.WHATSAPP_PHONE_ID}}/messages",
+          "headers": {
+            "Authorization": "Bearer {{$env.WHATSAPP_TOKEN}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "messaging_product": "whatsapp",
+            "to": "{{$webhook.customer.phone}}",
+            "type": "template",
+            "template": {
+              "name": "queue_update",
+              "language": { "code": "en" },
+              "components": [
+                {
+                  "type": "body",
+                  "parameters": [
+                    { "type": "text", "text": "{{$webhook.customer.name}}" },
+                    { "type": "text", "text": "{{$webhook.position}}" },
+                    { "type": "text", "text": "{{$webhook.estimatedWait}}" }
+                  ]
+                }
+              ]
+            }
+          },
+          "description": "Send WhatsApp notification"
+        }
+      ]
+    }
+  ],
+  "setup_instructions": {
+    "1": "Import this JSON into n8n",
+    "2": "Set environment variables in n8n settings",
+    "3": "Configure webhook URLs in your eLINE backend",
+    "4": "Activate workflows one by one",
+    "5": "Test each workflow with sample data"
+  },
+  "required_env_vars": {
+    "API_URL": "Your eLINE backend URL",
+    "APP_URL": "Your eLINE frontend URL",
+    "WHATSAPP_PHONE_ID": "WhatsApp Business Phone ID",
+    "WHATSAPP_TOKEN": "WhatsApp Business API Token"
+  }
+}
