@@ -4,10 +4,15 @@ import prisma from './database.js';
 class GeminiAnalyticsService {
   constructor() {
     if (process.env.GEMINI_API_KEY) {
-      this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
-      this.enabled = true;
-      console.log('✅ Gemini AI analytics enabled');
+      try {
+        this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
+        this.enabled = true;
+        console.log('✅ Gemini AI analytics enabled');
+      } catch (error) {
+        console.error('⚠️  Gemini AI initialization error:', error.message);
+        this.enabled = false;
+      }
     } else {
       this.enabled = false;
       console.log('⚠️  Gemini AI not configured');
@@ -218,9 +223,14 @@ Provide a brief, encouraging summary for the shop owner.`;
   }
 
   async generatePlatformInsights() {
-    if (!this.enabled) return null;
+    if (!this.enabled) {
+      console.log('⚠️  Gemini AI not enabled, skipping platform insights');
+      return null;
+    }
 
     try {
+      console.log('🤖 Generating platform insights with Gemini AI...');
+      
       // Get all businesses
       const businesses = await prisma.business.findMany({
         where: { status: 'approved' }
@@ -237,11 +247,15 @@ Provide a brief, encouraging summary for the shop owner.`;
 
 Give brief, data-driven insights for the platform owner.`;
 
+      console.log('📤 Sending request to Gemini API...');
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      return response.text();
+      const text = response.text();
+      console.log('✅ Platform insights generated successfully');
+      return text;
     } catch (error) {
-      console.error('Platform insights error:', error);
+      console.error('❌ Platform insights error:', error.message);
+      console.error('Full error:', error);
       return null;
     }
   }
