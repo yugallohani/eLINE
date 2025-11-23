@@ -572,58 +572,84 @@ export const barberDashboard = {
   displayServices(services) {
     const container = document.getElementById('services-container');
     
-    const serviceTemplates = [
-      { name: 'Haircut (Men)', icon: '✂️', price: 150, duration: 25, description: 'Professional men\'s haircut with styling' },
-      { name: 'Haircut (Women)', icon: '✂️', price: 300, duration: 40, description: 'Basic women\'s haircut with styling' },
-      { name: 'Beard Trim', icon: '🧔', price: 80, duration: 15, description: 'Beard shaping and trimming' },
-      { name: 'Hair Spa', icon: '💆', price: 300, duration: 45, description: 'Relaxing hair spa treatment' },
-      { name: 'Facial (Basic)', icon: '😊', price: 600, duration: 30, description: 'Basic facial treatment' },
-      { name: 'Waxing (Arms/Legs)', icon: '✨', price: 300, duration: 30, description: 'Arms and legs waxing service' }
-    ];
+    // Service emoji mapping
+    const serviceEmojis = {
+      'Hair Spa': '💆',
+      'Beard Trim': '🧔',
+      'Haircut (Men)': '💇‍♂️',
+      'Haircut (Women)': '💇‍♀️',
+      'Facial (Basic)': '🧖',
+      'Facial': '🧖',
+      'Shave': '🪒',
+      'Hair Color': '🎨',
+      'Massage': '💆‍♂️',
+      'Manicure': '💅',
+      'Pedicure': '🦶',
+      'Waxing': '✨'
+    };
     
-    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">';
+    if (services.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 60px 20px;">
+          <div style="font-size: 64px; margin-bottom: 16px;">✂️</div>
+          <h3 style="margin-bottom: 8px;">No Services Yet</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 24px;">
+            Add services during shop registration or contact admin to add services.
+          </p>
+        </div>
+      `;
+      return;
+    }
     
-    serviceTemplates.forEach(template => {
-      const existingService = services.find(s => s.name === template.name);
-      const isActive = existingService?.active !== false;
-      const currentPrice = existingService?.price || template.price;
-      const currentDuration = existingService?.duration || template.duration;
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;">';
+    
+    services.forEach(service => {
+      const isActive = service.active !== false;
+      const emoji = serviceEmojis[service.name] || service.icon || '✂️';
       
       html += `
-        <div class="service-card" style="border: 2px solid ${isActive ? 'var(--accent-primary)' : 'var(--glass-border)'}; opacity: ${isActive ? '1' : '0.6'};">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-            <h3 style="font-size: 18px; margin: 0;">${template.name}</h3>
+        <div class="service-manage-card ${isActive ? 'active' : 'inactive'}">
+          <div class="service-manage-header">
+            <div class="service-manage-icon">${emoji}</div>
             <label class="switch">
               <input type="checkbox" 
-                     data-service-name="${template.name}" 
+                     data-service-id="${service.id}"
+                     data-service-name="${service.name}" 
                      ${isActive ? 'checked' : ''}
                      onchange="barberDashboard.toggleServicePreview(this)">
               <span class="slider"></span>
             </label>
           </div>
-          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">${template.description}</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="input-group" style="margin: 0;">
-              <label class="input-label" style="font-size: 12px; margin-bottom: 4px;">Price (₹)</label>
+          
+          <div class="service-manage-body">
+            <h3 class="service-manage-title">${service.name}</h3>
+            <div class="service-manage-status ${isActive ? 'active' : 'inactive'}">
+              ${isActive ? '✓ Active' : '○ Inactive'}
+            </div>
+          </div>
+          
+          <div class="service-manage-inputs">
+            <div class="input-group-inline">
+              <label class="input-label-small">Price (₹)</label>
               <input type="number" 
-                     class="input" 
-                     data-service-price="${template.name}"
-                     value="${currentPrice}" 
+                     class="input input-small" 
+                     data-service-price="${service.name}"
+                     value="${service.price || 0}" 
                      min="0" 
                      step="10"
                      ${!isActive ? 'disabled' : ''}
-                     style="padding: 8px;">
+                     placeholder="0">
             </div>
-            <div class="input-group" style="margin: 0;">
-              <label class="input-label" style="font-size: 12px; margin-bottom: 4px;">Duration (min)</label>
+            <div class="input-group-inline">
+              <label class="input-label-small">Duration (min)</label>
               <input type="number" 
-                     class="input" 
-                     data-service-duration="${template.name}"
-                     value="${currentDuration}" 
+                     class="input input-small" 
+                     data-service-duration="${service.name}"
+                     value="${service.duration || 30}" 
                      min="5" 
                      step="5"
                      ${!isActive ? 'disabled' : ''}
-                     style="padding: 8px;">
+                     placeholder="30">
             </div>
           </div>
         </div>
