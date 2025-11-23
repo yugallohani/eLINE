@@ -749,25 +749,178 @@ export const adminDashboard = {
   },
   
   async renderAnalyticsView(content) {
-    const response = await fetch('/api/admin/analytics?days=30', {
-      headers: { 'Authorization': `Bearer ${this.token}` }
-    });
-    const analytics = await response.json();
+    content.innerHTML = '<div class="spinner" style="margin: 48px auto;"></div>';
     
-    content.innerHTML = `
-      <div class="admin-header">
-        <h1>Platform Analytics</h1>
-        <p style="color: var(--text-secondary);">30-day performance overview</p>
-      </div>
+    try {
+      // Fetch all analytics data
+      const [statsRes, analyticsRes, shopsRes] = await Promise.all([
+        fetch('/api/admin/dashboard', { headers: { 'Authorization': `Bearer ${this.token}` } }),
+        fetch('/api/admin/analytics?days=30', { headers: { 'Authorization': `Bearer ${this.token}` } }),
+        fetch('/api/admin/shops', { headers: { 'Authorization': `Bearer ${this.token}` } })
+      ]);
       
-      <div class="admin-section">
-        <h2 class="admin-section-title">Daily Customers</h2>
-        <div class="chart-placeholder">
-          <p>Chart visualization will be added here</p>
-          <p style="color: var(--text-secondary); font-size: 14px;">Total data points: ${analytics.length}</p>
+      const stats = await statsRes.json();
+      const analytics = await analyticsRes.json();
+      const shops = await shopsRes.json();
+      
+      // Calculate metrics
+      const totalCustomers = analytics.reduce((sum, day) => sum + (day.totalCustomers || 0), 0);
+      const totalRevenue = analytics.reduce((sum, day) => sum + (day.revenue || 0), 0);
+      const avgWaitTime = analytics.reduce((sum, day) => sum + (day.avgWaitTime || 0), 0) / analytics.length || 0;
+      
+      // Get last 7 days for chart
+      const last7Days = analytics.slice(0, 7).reverse();
+      const maxCustomers = Math.max(...last7Days.map(d => d.totalCustomers || 0), 1);
+      
+      content.innerHTML = `
+        <div class="admin-header">
+          <h1>Platform Analytics</h1>
+          <p style="color: var(--text-secondary);">Real-time performance metrics and insights</p>
         </div>
-      </div>
-    `;
+        
+        <!-- Key Metrics Grid -->
+        <div class="analytics-metrics-grid">
+          <div class="analytics-metric-card">
+            <div class="metric-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-primary);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M17 21V19C17 16.7909 15.2091 15 13 15H5C2.79086 15 1 16.7909 1 19V21" stroke="currentColor" stroke-width="2"/>
+                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M23 21V19C23 17.3431 21.6569 16 20 16" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 3.12988C17.1652 3.60544 18 4.7168 18 6C18 7.2832 17.1652 8.39456 16 8.87012" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-value">${totalCustomers}</div>
+              <div class="metric-label">Total Customers (30d)</div>
+            </div>
+          </div>
+          
+          <div class="analytics-metric-card">
+            <div class="metric-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6313 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6313 13.6815 18 14.5717 18 15.5C18 16.4283 17.6313 17.3185 16.9749 17.9749C16.3185 18.6313 15.4283 19 14.5 19H6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-value">₹${totalRevenue.toLocaleString()}</div>
+              <div class="metric-label">Total Revenue (30d)</div>
+            </div>
+          </div>
+          
+          <div class="analytics-metric-card">
+            <div class="metric-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-value">${Math.round(avgWaitTime)} min</div>
+              <div class="metric-label">Avg Wait Time</div>
+            </div>
+          </div>
+          
+          <div class="analytics-metric-card">
+            <div class="metric-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--accent-secondary);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9L12 2L21 9V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V9Z" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-value">${shops.length}</div>
+              <div class="metric-label">Active Shops</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="admin-section">
+          <h2 class="admin-section-title">📊 Customer Trends (Last 7 Days)</h2>
+          <div class="chart-container">
+            <div class="bar-chart">
+              ${last7Days.map(day => {
+                const height = (day.totalCustomers / maxCustomers) * 100;
+                const date = new Date(day.date);
+                return `
+                  <div class="bar-item">
+                    <div class="bar-value">${day.totalCustomers || 0}</div>
+                    <div class="bar" style="height: ${height}%">
+                      <div class="bar-fill"></div>
+                    </div>
+                    <div class="bar-label">${date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Top Performing Shops -->
+        <div class="admin-section">
+          <h2 class="admin-section-title">🏆 Top Performing Shops</h2>
+          <div class="top-shops-grid">
+            ${shops.slice(0, 6).map((shop, index) => `
+              <div class="top-shop-card">
+                <div class="shop-rank">#${index + 1}</div>
+                <div class="shop-details">
+                  <h4>${shop.name}</h4>
+                  <p>${shop.city}, ${shop.state}</p>
+                </div>
+                <div class="shop-stats-mini">
+                  <div class="stat-mini">
+                    <span class="stat-mini-value">${shop._count?.customers || 0}</span>
+                    <span class="stat-mini-label">Customers</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <!-- Real-time Stats -->
+        <div class="admin-section">
+          <h2 class="admin-section-title">⚡ Real-Time Statistics</h2>
+          <div class="realtime-stats-grid">
+            <div class="realtime-stat">
+              <div class="realtime-stat-icon">👥</div>
+              <div class="realtime-stat-value">${stats.stats.todayCustomers}</div>
+              <div class="realtime-stat-label">Customers Today</div>
+            </div>
+            <div class="realtime-stat">
+              <div class="realtime-stat-icon">💰</div>
+              <div class="realtime-stat-value">₹${stats.stats.todayRevenue}</div>
+              <div class="realtime-stat-label">Revenue Today</div>
+            </div>
+            <div class="realtime-stat">
+              <div class="realtime-stat-icon">⏳</div>
+              <div class="realtime-stat-value">${stats.stats.pendingApplications}</div>
+              <div class="realtime-stat-label">Pending Reviews</div>
+            </div>
+            <div class="realtime-stat">
+              <div class="realtime-stat-icon">✅</div>
+              <div class="realtime-stat-value">${stats.stats.activeShops}</div>
+              <div class="realtime-stat-label">Active Shops</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Auto-refresh every 30 seconds
+      setTimeout(() => {
+        if (document.querySelector('.admin-nav-item.active')?.dataset.view === 'analytics') {
+          this.renderAnalyticsView(content);
+        }
+      }, 30000);
+      
+    } catch (error) {
+      console.error('Analytics error:', error);
+      content.innerHTML = `
+        <div style="text-align: center; padding: 48px;">
+          <p style="color: var(--error);">Failed to load analytics</p>
+          <button class="btn btn-primary" onclick="adminDashboard.loadView('analytics')">Retry</button>
+        </div>
+      `;
+    }
   }
 };
 
