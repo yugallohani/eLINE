@@ -390,6 +390,21 @@ export const router = {
     const estimatedTime = new Date(Date.now() + totalWaitTime * 60000);
     const timeString = estimatedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     
+    // Get service emoji
+    const getServiceEmoji = (name) => {
+      const n = name.toLowerCase();
+      if (n.includes('haircut')) return n.includes('men') ? '💇‍♂️' : n.includes('women') ? '💇‍♀️' : '✂️';
+      if (n.includes('hair color')) return '🎨';
+      if (n.includes('hair spa')) return '💆';
+      if (n.includes('beard') || n.includes('shave')) return '🧔';
+      if (n.includes('facial')) return '🧖';
+      if (n.includes('massage')) return '💆‍♂️';
+      if (n.includes('manicure')) return '💅';
+      if (n.includes('pedicure')) return '🦶';
+      return '✂️';
+    };
+    const serviceEmoji = getServiceEmoji(service.name);
+    
     view.innerHTML = `
       <div class="glass-card fade-in">
         <button class="btn btn-secondary btn-sm" onclick="window.location.href='/?join=true'" style="margin-bottom: 24px;">
@@ -397,7 +412,7 @@ export const router = {
         </button>
         
         <div style="text-align: center; padding: 32px 0;">
-          <div class="service-icon" style="font-size: 72px;">${service.icon}</div>
+          <div class="service-icon" style="font-size: 72px;">${serviceEmoji}</div>
           <h3 style="font-size: 32px; margin: 24px 0; font-weight: 700;">${service.name}</h3>
           
           <!-- Wait Time Display -->
