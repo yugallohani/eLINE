@@ -19,7 +19,8 @@
     "db:seed": "node prisma/seed.js",
     "seed:barber": "node scripts/seed-demo-barber.js",
     "update:prices": "node scripts/update-prices-to-inr.js",
-    "update:services": "node scripts/update-services.js"
+    "update:services": "node scripts/update-services.js",
+    "generate:analytics": "node scripts/generate-analytics.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

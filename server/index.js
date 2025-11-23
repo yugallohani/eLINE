@@ -1326,14 +1326,69 @@ app.get('/api/admin/analytics', authMiddleware.requireAuth, authMiddleware.requi
     const { days = 30 } = req.query;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
+    startDate.setHours(0, 0, 0, 0);
     
     // Get daily analytics
     const dailyAnalytics = await prisma.analytics.findMany({
       where: {
         date: { gte: startDate }
       },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'desc' }
     });
+    
+    // If no analytics data, generate from customer records
+    if (dailyAnalytics.length === 0) {
+      console.log('📊 No analytics data found, generating from customer records...');
+      
+      // Get all customers in date range
+      const customers = await prisma.customer.findMany({
+        where: {
+          createdAt: { gte: startDate }
+        },
+        include: { service: true },
+        orderBy: { createdAt: 'asc' }
+      });
+      
+      // Group by date
+      const byDate = {};
+      customers.forEach(customer => {
+        const date = new Date(customer.createdAt);
+        date.setHours(0, 0, 0, 0);
+        const dateKey = date.toISOString().split('T')[0];
+        
+        if (!byDate[dateKey]) {
+          byDate[dateKey] = {
+            date: dateKey,
+            totalCustomers: 0,
+            completedServices: 0,
+            revenue: 0,
+            waitTimes: []
+          };
+        }
+        
+        byDate[dateKey].totalCustomers++;
+        if (customer.status === 'completed') {
+          byDate[dateKey].completedServices++;
+          byDate[dateKey].revenue += customer.service?.price || 0;
+        }
+        if (customer.actualWait) {
+          byDate[dateKey].waitTimes.push(customer.actualWait);
+        }
+      });
+      
+      // Convert to array and calculate averages
+      const result = Object.values(byDate).map(day => ({
+        date: day.date,
+        totalCustomers: day.totalCustomers,
+        completedServices: day.completedServices,
+        revenue: day.revenue,
+        avgWaitTime: day.waitTimes.length > 0
+          ? day.waitTimes.reduce((a, b) => a + b, 0) / day.waitTimes.length
+          : 0
+      })).sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      return res.json(result);
+    }
     
     // Aggregate by date
     const aggregated = {};
@@ -1362,7 +1417,7 @@ app.get('/api/admin/analytics', authMiddleware.requireAuth, authMiddleware.requi
       avgWaitTime: day.avgWaitTime.length > 0
         ? day.avgWaitTime.reduce((a, b) => a + b, 0) / day.avgWaitTime.length
         : 0
-    }));
+    })).sort((a, b) => new Date(b.date) - new Date(a.date));
     
     res.json(result);
   } catch (error) {
