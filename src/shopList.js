@@ -38,6 +38,13 @@ export const shopList = {
       
       this.shops = await response.json();
       
+      // Debug: Log shop data to check photos
+      console.log('Loaded shops:', this.shops.map(s => ({
+        name: s.name,
+        logoUrl: s.logoUrl,
+        shopPhotos: s.shopPhotos
+      })));
+      
       if (this.shops.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
@@ -84,21 +91,31 @@ export const shopList = {
     const serviceCount = shop._count?.services || 0;
     const queueCount = shop._count?.customers || 0;
     
-    // Get shop photo from shopPhotos array
+    // Get shop photo - prioritize logoUrl, then shopPhotos array
     let shopLogo = '✂️';
-    if (shop.shopPhotos && typeof shop.shopPhotos === 'string') {
-      try {
-        const photos = JSON.parse(shop.shopPhotos);
-        if (Array.isArray(photos) && photos.length > 0) {
-          shopLogo = `<img src="${photos[0]}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
-        }
-      } catch (e) {
-        console.error('Error parsing shop photos:', e);
-      }
-    } else if (Array.isArray(shop.shopPhotos) && shop.shopPhotos.length > 0) {
-      shopLogo = `<img src="${shop.shopPhotos[0]}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
-    } else if (shop.logoUrl) {
+    
+    // First try logoUrl (set during approval)
+    if (shop.logoUrl) {
       shopLogo = `<img src="${shop.logoUrl}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+    }
+    // Then try shopPhotos array
+    else if (shop.shopPhotos) {
+      let photos = shop.shopPhotos;
+      
+      // Handle if it's a string (needs parsing)
+      if (typeof photos === 'string') {
+        try {
+          photos = JSON.parse(photos);
+        } catch (e) {
+          console.error('Error parsing shop photos:', e);
+          photos = null;
+        }
+      }
+      
+      // If we have a valid array with photos, use the first one
+      if (Array.isArray(photos) && photos.length > 0) {
+        shopLogo = `<img src="${photos[0]}" alt="${shop.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+      }
     }
     
     return `
