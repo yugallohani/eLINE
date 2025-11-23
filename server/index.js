@@ -420,7 +420,7 @@ app.get('/api/shops/list', async (req, res) => {
   }
 });
 
-// Get business by barber code
+// Get business by barber code (for QR code scanning)
 app.get('/api/business/:barberCode', async (req, res) => {
   try {
     const { barberCode } = req.params;
@@ -452,6 +452,28 @@ app.get('/api/business/:barberCode', async (req, res) => {
   } catch (error) {
     console.error('Get business error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Redirect route for QR codes with barber code
+app.get('/shop/:barberCode', async (req, res) => {
+  try {
+    const { barberCode } = req.params;
+    
+    const business = await prisma.business.findUnique({
+      where: { barberCode },
+      select: { id: true }
+    });
+    
+    if (!business) {
+      return res.redirect('/shops');
+    }
+    
+    // Redirect to original customer flow
+    res.redirect(`/?business=${business.id}&join=true`);
+  } catch (error) {
+    console.error('QR redirect error:', error);
+    res.redirect('/shops');
   }
 });
 

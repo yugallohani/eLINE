@@ -58,7 +58,7 @@ export const shopList = {
         const card = document.getElementById(`shop-${shop.id}`);
         if (card) {
           card.onclick = () => {
-            window.location.href = `/shop/${shop.barberCode}`;
+            window.location.href = `/?business=${shop.id}&join=true`;
           };
         }
       });
@@ -124,7 +124,7 @@ export const shopList = {
         </div>
         
         <div class="shop-card-footer">
-          <button class="btn btn-primary btn-block">
+          <button class="btn btn-primary btn-block" onclick="window.location.href='/?business=${shop.id}&join=true'">
             View Services →
           </button>
         </div>
