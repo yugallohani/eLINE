@@ -266,30 +266,67 @@ export const router = {
     const activeQueue = queue.filter(q => q.status === 'active' || q.status === 'serving');
     const currentWaitTime = activeQueue.reduce((sum, c) => sum + (c.service?.duration || 0), 0);
     
+    // Service emoji mapping
+    const serviceEmojis = {
+      'Hair Spa': '💆',
+      'Beard Trim': '🧔',
+      'Haircut (Men)': '💇‍♂️',
+      'Haircut (Women)': '💇‍♀️',
+      'Facial (Basic)': '🧖',
+      'Facial': '🧖',
+      'Shave': '🪒',
+      'Hair Color': '🎨',
+      'Massage': '💆‍♂️',
+      'Manicure': '💅',
+      'Pedicure': '🦶'
+    };
+    
     services.forEach(service => {
       const estimatedWait = currentWaitTime + service.duration;
       const queueLength = activeQueue.length;
       
+      // Get appropriate emoji
+      const emoji = serviceEmojis[service.name] || service.icon || '✂️';
+      
       const card = document.createElement('div');
       card.className = 'service-card service-card-enhanced';
       card.innerHTML = `
-        <div class="service-wait-time">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          ~${estimatedWait} min wait
-        </div>
-        <div class="service-icon">${service.icon}</div>
-        <div class="service-name">${service.name}</div>
-        <div class="service-duration">Service time: ${service.duration} min</div>
-        ${queueLength > 0 ? `<div style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">${queueLength} ${queueLength === 1 ? 'person' : 'people'} in queue</div>` : '<div style="color: var(--success); font-size: 13px; margin-top: 8px;">✓ No wait!</div>'}
-        ${service.price ? `
-          <div class="service-price-tag">
-            <span class="service-price">₹${service.price}</span>
-            <span class="service-duration-badge">${service.duration} min</span>
+        <div class="service-card-header">
+          <div class="service-icon-large">${emoji}</div>
+          <div class="service-wait-badge ${queueLength === 0 ? 'no-wait' : queueLength > 3 ? 'busy' : 'moderate'}">
+            ${queueLength === 0 ? '✓ No wait' : `⏱️ ~${estimatedWait} min`}
           </div>
-        ` : ''}
+        </div>
+        
+        <div class="service-card-body">
+          <h3 class="service-title">${service.name}</h3>
+          
+          <div class="service-meta-row">
+            <div class="service-meta-item">
+              <span class="meta-icon">⏱️</span>
+              <span class="meta-text">${service.duration} min</span>
+            </div>
+            ${service.price ? `
+              <div class="service-meta-item price">
+                <span class="meta-icon">₹</span>
+                <span class="meta-text">${service.price}</span>
+              </div>
+            ` : ''}
+          </div>
+          
+          ${queueLength > 0 ? `
+            <div class="queue-info">
+              <span class="queue-icon">👥</span>
+              <span class="queue-text">${queueLength} ${queueLength === 1 ? 'person' : 'people'} waiting</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        <div class="service-card-footer">
+          <button class="service-select-btn">
+            Select Service →
+          </button>
+        </div>
       `;
       card.onclick = () => this.showEstimate(service, estimatedWait, queueLength);
       grid.appendChild(card);
