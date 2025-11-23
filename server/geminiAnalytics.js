@@ -5,6 +5,7 @@ class GeminiAnalyticsService {
   constructor() {
     this.cache = new Map();
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    this.errorLogged = false; // Track if we've already logged an error
     
     if (process.env.GEMINI_API_KEY) {
       try {
@@ -15,6 +16,7 @@ class GeminiAnalyticsService {
       } catch (error) {
         console.error('⚠️  Gemini AI initialization error:', error.message);
         this.enabled = false;
+        this.errorLogged = true;
       }
     } else {
       this.enabled = false;
@@ -51,7 +53,11 @@ class GeminiAnalyticsService {
       
       return this.parseInsights(text);
     } catch (error) {
-      console.error('Gemini analytics error:', error);
+      // Silently fail - insights are optional
+      if (!this.errorLogged) {
+        console.error('⚠️  Gemini AI insights unavailable');
+        this.errorLogged = true;
+      }
       return { insights: [], predictions: [], recommendations: [] };
     }
   }
@@ -212,7 +218,7 @@ Provide a brief, encouraging summary for the shop owner.`;
       const response = await result.response;
       return response.text();
     } catch (error) {
-      console.error('Daily summary error:', error);
+      // Silently fail - summary is optional
       return null;
     }
   }
@@ -245,13 +251,10 @@ Provide a brief, encouraging summary for the shop owner.`;
     // Check cache first
     const cached = this.getCached('platform-insights');
     if (cached) {
-      console.log('📦 Using cached platform insights');
       return cached;
     }
 
     try {
-      console.log('🤖 Generating platform insights with Gemini AI...');
-      
       // Get all businesses
       const businesses = await prisma.business.findMany({
         where: { status: 'approved' }
@@ -274,10 +277,13 @@ Give brief, data-driven insights for the platform owner.`;
       
       // Cache the result
       this.setCache('platform-insights', text);
-      console.log('✅ Platform insights generated and cached');
       return text;
     } catch (error) {
-      console.error('❌ Platform insights error:', error.message);
+      // Only log the error once to avoid spam
+      if (!this.errorLogged) {
+        console.error('⚠️  Gemini AI insights unavailable:', error.message);
+        this.errorLogged = true;
+      }
       return null;
     }
   }
