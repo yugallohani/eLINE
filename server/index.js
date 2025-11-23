@@ -954,9 +954,7 @@ app.get('/api/admin/dashboard', authMiddleware.requireAuth, authMiddleware.requi
       _count: true
     });
     
-    // Get Gemini insights
-    const platformInsights = await geminiAnalytics.generatePlatformInsights();
-    
+    // Return dashboard data immediately without waiting for insights
     res.json({
       stats: {
         totalShops,
@@ -968,11 +966,27 @@ app.get('/api/admin/dashboard', authMiddleware.requireAuth, authMiddleware.requi
       },
       recentActivity: recentCustomers,
       shopGrowth,
-      aiInsights: platformInsights
+      aiInsights: null // Will be loaded separately
     });
+    
+    // Generate insights in background (don't await)
+    geminiAnalytics.generatePlatformInsights().catch(err => 
+      console.error('Background insights generation failed:', err)
+    );
   } catch (error) {
     console.error('Dashboard error:', error);
     res.status(500).json({ error: 'Failed to load dashboard' });
+  }
+});
+
+// New endpoint to get AI insights separately
+app.get('/api/admin/insights', authMiddleware.requireAuth, authMiddleware.requireAdmin, async (req, res) => {
+  try {
+    const insights = await geminiAnalytics.generatePlatformInsights();
+    res.json({ insights });
+  } catch (error) {
+    console.error('Insights error:', error);
+    res.status(500).json({ error: 'Failed to generate insights' });
   }
 });
 

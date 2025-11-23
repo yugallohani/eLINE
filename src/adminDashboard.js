@@ -120,9 +120,43 @@ export const adminDashboard = {
       
       const data = await response.json();
       this.renderDashboard(app, data);
+      
+      // Load insights separately
+      this.loadInsights();
     } catch (error) {
       console.error('Dashboard load error:', error);
       throw error;
+    }
+  },
+
+  async loadInsights() {
+    try {
+      const response = await fetch('/api/admin/insights', {
+        headers: { 'Authorization': `Bearer ${this.token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.insights) {
+          this.updateInsights(data.insights);
+        }
+      }
+    } catch (error) {
+      console.error('Insights load error:', error);
+    }
+  },
+
+  updateInsights(insights) {
+    const insightsContainer = document.getElementById('ai-insights-container');
+    if (insightsContainer) {
+      insightsContainer.innerHTML = `
+        <div class="admin-section">
+          <h2 class="admin-section-title">🤖 AI-Powered Insights</h2>
+          <div class="ai-insights-card glass-card">
+            <p style="white-space: pre-wrap; line-height: 1.8;">${insights}</p>
+          </div>
+        </div>
+      `;
     }
   },
   
@@ -256,14 +290,17 @@ export const adminDashboard = {
       </div>
       
       <!-- AI Insights -->
-      ${data.aiInsights ? `
+      <div id="ai-insights-container">
         <div class="admin-section">
           <h2 class="admin-section-title">🤖 AI-Powered Insights</h2>
           <div class="ai-insights-card glass-card">
-            <p style="white-space: pre-wrap; line-height: 1.8;">${data.aiInsights}</p>
+            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+              <div class="spinner" style="width: 24px; height: 24px; margin: 0 auto 12px;"></div>
+              <p>Generating AI insights...</p>
+            </div>
           </div>
         </div>
-      ` : ''}
+      </div>
       
       <!-- Recent Activity -->
       <div class="admin-section">

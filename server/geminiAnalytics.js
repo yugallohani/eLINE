@@ -3,6 +3,9 @@ import prisma from './database.js';
 
 class GeminiAnalyticsService {
   constructor() {
+    this.cache = new Map();
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    
     if (process.env.GEMINI_API_KEY) {
       try {
         this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -17,6 +20,18 @@ class GeminiAnalyticsService {
       this.enabled = false;
       console.log('⚠️  Gemini AI not configured');
     }
+  }
+
+  getCached(key) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key, data) {
+    this.cache.set(key, { data, timestamp: Date.now() });
   }
 
   async generateInsights(businessId) {
@@ -224,8 +239,14 @@ Provide a brief, encouraging summary for the shop owner.`;
 
   async generatePlatformInsights() {
     if (!this.enabled) {
-      console.log('⚠️  Gemini AI not enabled, skipping platform insights');
       return null;
+    }
+
+    // Check cache first
+    const cached = this.getCached('platform-insights');
+    if (cached) {
+      console.log('📦 Using cached platform insights');
+      return cached;
     }
 
     try {
@@ -247,15 +268,16 @@ Provide a brief, encouraging summary for the shop owner.`;
 
 Give brief, data-driven insights for the platform owner.`;
 
-      console.log('📤 Sending request to Gemini API...');
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      console.log('✅ Platform insights generated successfully');
+      
+      // Cache the result
+      this.setCache('platform-insights', text);
+      console.log('✅ Platform insights generated and cached');
       return text;
     } catch (error) {
       console.error('❌ Platform insights error:', error.message);
-      console.error('Full error:', error);
       return null;
     }
   }
