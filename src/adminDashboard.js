@@ -131,18 +131,47 @@ export const adminDashboard = {
 
   async loadInsights() {
     try {
+      console.log('🤖 Loading AI insights...');
       const response = await fetch('/api/admin/insights', {
         headers: { 'Authorization': `Bearer ${this.token}` }
       });
       
+      console.log('Insights response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Insights data:', data);
+        
         if (data.insights) {
+          console.log('✅ Insights received, updating UI');
           this.updateInsights(data.insights);
+        } else {
+          console.log('⚠️  No insights in response');
+          this.showNoInsights();
         }
+      } else {
+        console.error('❌ Insights request failed:', response.status);
+        this.showNoInsights();
       }
     } catch (error) {
       console.error('Insights load error:', error);
+      this.showNoInsights();
+    }
+  },
+  
+  showNoInsights() {
+    const insightsContainer = document.getElementById('ai-insights-container');
+    if (insightsContainer) {
+      insightsContainer.innerHTML = `
+        <div class="admin-section">
+          <h2 class="admin-section-title">🤖 AI-Powered Insights</h2>
+          <div class="ai-insights-card glass-card">
+            <p style="color: var(--text-secondary); text-align: center;">
+              AI insights are being generated. Please check back in a few moments.
+            </p>
+          </div>
+        </div>
+      `;
     }
   },
 

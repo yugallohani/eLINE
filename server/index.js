@@ -982,10 +982,18 @@ app.get('/api/admin/dashboard', authMiddleware.requireAuth, authMiddleware.requi
 // New endpoint to get AI insights separately
 app.get('/api/admin/insights', authMiddleware.requireAuth, authMiddleware.requireAdmin, async (req, res) => {
   try {
+    console.log('📊 Admin requested AI insights');
     const insights = await geminiAnalytics.generatePlatformInsights();
-    res.json({ insights });
+    
+    if (insights) {
+      console.log('✅ Insights generated successfully');
+      res.json({ insights });
+    } else {
+      console.log('⚠️  No insights available (Gemini AI might be disabled or failed)');
+      res.json({ insights: null });
+    }
   } catch (error) {
-    console.error('Insights error:', error);
+    console.error('❌ Insights endpoint error:', error);
     res.status(500).json({ error: 'Failed to generate insights' });
   }
 });
