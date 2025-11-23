@@ -482,7 +482,7 @@ app.get('/api/qr/:businessId', async (req, res) => {
   try {
     const QRCode = await import('qrcode');
     const { businessId } = req.params;
-    const url = `${req.protocol}://${req.get('host')}/?business=${businessId}`;
+    const url = `${req.protocol}://${req.get('host')}/?business=${businessId}&join=true`;
     const qrCode = await QRCode.toDataURL(url);
     res.json({ qrCode, url });
   } catch (error) {
